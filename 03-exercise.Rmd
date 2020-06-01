@@ -1,0 +1,142 @@
+---
+title: "Exercise 3"
+author: "João Vitor"
+date: "31/05/2020"
+output: html_document
+---
+
+# Task 1: Reflection
+
+Put your reflection here
+
+
+# Task 2: Lord of the Rings
+
+## Load and clean data
+
+First we load, restructure, and clean the data.
+
+```{r load-clean-data, warning=FALSE, message=FALSE}
+# You'll only need the tidyverse library for this exercise
+library(tidyverse)
+
+theme_set(theme_light())
+# Load the separate datasets
+fellowship <- read_csv("data/The_Fellowship_Of_The_Ring.csv")
+tt <- read_csv("data/The_Two_Towers.csv")
+rotk <- read_csv("data/The_Return_Of_The_King.csv")
+
+# bind_rows() stacks data frames on top of each other
+lotr_wide <- bind_rows(fellowship, tt, rotk) %>% 
+  # Make the Film column a categorical variable (factor), and put it in the
+  # order the categories appear (so the films are in the correct order)
+  mutate(Film = fct_inorder(Film))
+
+# Make this wide data tidy
+lotr <- lotr_wide %>% 
+  # This is the new way to make data long
+  pivot_longer(cols = c(Female, Male), 
+               names_to = "Gender", values_to = "Words")
+  # This is the old way that you learned in the RStudio primer on tidy data
+  # gather(key = "Gender", value = "Words", Female, Male)
+```
+
+
+## Race
+
+Does a certain race dominate the entire trilogy? (hint: group by `Race`)
+
+```{r}
+lotr %>%
+  group_by(Race) %>% 
+  summarise(total_words = sum(Words))
+```
+
+
+## Gender and film
+
+Does a certain gender dominate a movie? (lolz of course it does, but still, graph it) (Hint: group by both `Gender` and `Film`.) Experiment with filling by `Gender` or `Film` and faceting by `Gender` or `Film`.
+
+```{r}
+lotr %>% 
+  group_by(Gender, Film) %>% 
+  summarise(total_words = sum(Words)) %>% 
+  ggplot(aes(x = Gender, y = total_words, fill = Gender)) +
+    geom_col() +
+    facet_wrap(~Film) +
+    labs(
+      title = "Word count by gender in LOTR movies",
+      y = "Total Words"
+    ) +
+    theme(legend.position = 'bottom')
+```
+
+
+## Race and film
+
+Does the dominant race differ across the three movies? (Hint: group by both `Race` and `Film`.) Experiment with filling by `Race` or `Film` and faceting by `Race` or `Film`.
+
+```{r}
+lotr %>% 
+  group_by(Race, Film) %>% 
+  summarise(total_words = sum(Words)) %>% 
+  ggplot(aes(x = Race, y = total_words, fill = Race)) +
+    geom_col() +
+    facet_wrap(~Film) +
+    labs(
+      title = "Word count by race in LOTR movies",
+      y = "Total Words"
+    ) +
+    theme(legend.position = 'bottom')
+```
+
+
+## Race and gender and film
+
+Create a plot that visualizes the number of words spoken by race, gender, and film simultaneously. Use the complete tidy `lotr` data frame. You don't need to create a new summarized dataset (with `group_by(Race, Gender, Film)`) because the original data already has a row for each of those (you could make a summarized dataset, but it would be identical to the full version).
+
+You need to show `Race`, `Gender`, and `Film` at the same time, but you only have two possible aesthetics (`x` and `fill`), so you'll also need to facet by the third. Play around with different combinations (e.g. try `x = Race`, then `x = Film`) until you find one that tells the clearest story. For fun, add a `labs()` layer to add a title and subtitle and caption.
+
+```{r}
+lotr %>%
+  ggplot(aes(x = Race, y = Words, fill = Gender)) +
+    geom_col(position = position_dodge(preserve = "single")) +
+    facet_wrap(~Film) +
+    labs(
+      title = "Word count in LOTR movies",
+      subtitle = "Grouped by Race and Gender",
+      caption = "Only the elves in the first movie have an adequate\n quantity of words said by each gender",
+      y = "Total words spoken"
+    )
+
+#Another alternativa
+lotr %>%
+  ggplot(aes(x = Words, y = Race, fill = Gender)) +
+    geom_col(position = position_dodge(preserve = "single")) +
+    facet_grid(rows = vars(Film)) +
+    labs(
+      title = "Word count in LOTR movies",
+      subtitle = "Grouped by Race and Gender",
+      caption = "Only the elves in the first movie have an adequate\n quantity of words said by each gender",
+      x = "Total words spoken"
+    )
+
+#Stacked version
+
+lotr %>%
+  group_by(Film, Race) %>% 
+  mutate(total_words = sum(Words)) %>% 
+  group_by(Race, Gender) %>% 
+  mutate(perc_words = Words / total_words) %>% 
+  ggplot(aes(x = Race, y = perc_words, fill = Gender)) +
+    geom_col() +
+    facet_wrap(~Film) +
+    geom_hline(aes(yintercept=0.5), linetype="dotted") +
+    scale_y_continuous(labels = scales::percent) +
+    labs(
+      title = "Word count in LOTR movies",
+      subtitle = "Grouped by Race and Gender",
+      caption = "Only the elves in the first movie have an adequate\n quantity of words said by each gender",
+      y = "Percentage of words spoken"
+    )
+```

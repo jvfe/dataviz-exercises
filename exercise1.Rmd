@@ -1,0 +1,24 @@
+---
+title: "Exercise 1"
+author: "João Vitor"
+date: "30/05/2020"
+output: html_document
+---
+
+# Reflection
+
+Replace this text with your reflection
+
+
+# My first plot
+
+```{r load-libraries-data, warning=FALSE, message=FALSE}
+library(tidyverse)
+theme_set(theme_light())
+cars <- read_csv("data/cars.csv")
+```
+
+```{r}
+ggplot(cars, aes(displ, cty)) +
+  geom_point()
+```
