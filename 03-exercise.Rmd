@@ -107,7 +107,8 @@ lotr %>%
       subtitle = "Grouped by Race and Gender",
       caption = "Only the elves in the first movie have an adequate\n quantity of words said by each gender",
       y = "Total words spoken"
-    )
+    ) +
+    theme(legend.title = element_blank())
 
 #Another alternativa
 lotr %>%
@@ -119,7 +120,8 @@ lotr %>%
       subtitle = "Grouped by Race and Gender",
       caption = "Only the elves in the first movie have an adequate\n quantity of words said by each gender",
       x = "Total words spoken"
-    )
+    ) +
+    theme(legend.title = element_blank())
 
 #Stacked version
 
@@ -138,5 +140,6 @@ lotr %>%
       subtitle = "Grouped by Race and Gender",
       caption = "Only the elves in the first movie have an adequate\n quantity of words said by each gender",
       y = "Percentage of words spoken"
-    )
+    ) +
+    theme(legend.title = element_blank())
 ```
