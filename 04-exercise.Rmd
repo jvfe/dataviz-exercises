@@ -112,15 +112,16 @@ ggplot(essential_by_category, aes(x = reorder(CATEGORY, proportion),
 # Add a heatmap here with geom_tile()
 essential %>% 
   group_by(BOROUGH, CATEGORY) %>% 
-  summarize(total = n()) %>% 
+  summarize(total = n()) %>%
+  group_by(CATEGORY) %>% 
   mutate(proportion = total / sum(total)) %>% 
   ggplot(aes(reorder(BOROUGH, proportion), CATEGORY, fill = proportion)) +
     geom_tile() +
     theme_classic() +
     scale_fill_viridis_c(option = 'inferno', labels = scales::percent) + 
-    theme(legend.position='bottom') +
+    theme(legend.position='bottom', legend.text = element_text(angle = 90, hjust = 1)) +
     guides(fill = guide_colourbar(title = "Proportion", 
-                                  title.vjust = 0.8, 
+                                  title.vjust = 0.8,
                                   frame.colour = 'black')) +
     labs(
       x = "Borough",
