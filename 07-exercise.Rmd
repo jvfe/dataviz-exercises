@@ -1,0 +1,200 @@
+---
+title: "Exercise 7"
+author: "Put your name here"
+date: "Put the date here"
+output: html_document
+---
+
+# Task 1: Reflection
+
+## Dual y--axis
+
+* As a general rule, never use dual y-axis, as they can convey false or spurious correlations and gives too much decision making-power to the data visualizer. 
+* One exception to using dual y-axis is when both of the axis represent the same measure, but on different scales, such as having a temperature chart with one y-axis being temperature in celsius and the other in fahrenheit.
+* Alternatives:
+  * Mapping the other dimension to different aesthetics;
+  * Using multiple plots
+
+## Visualizing correlations
+
+* Scatterplot matrix
+* Correlograms
+
+## Visualizing regressions
+
+* Multiple regression can get tricky, so use:
+  * Coefficient plots
+  * Marginal effects plots:
+    * Create new dataset with all explanatory variables in the model.
+    * Keep one variable changing and all others constant and use the model to predict
+
+# Task 2: Combining plots
+
+```{r load-libraries-data}
+library(tidyverse)
+library(patchwork)
+library(broom)
+theme_set(theme_minimal())
+
+results_2016 <- read_csv("data/results_2016.csv")
+```
+
+Make 2–3 plots of anything you want from the `results_2016` data (histogram, density, boxplot, scatterplot, whatever) and combine them with **patchwork**. Look at [the documentation](https://patchwork.data-imaginist.com/articles/guides/assembly.html) to see fancy ways of combining them, like having two rows inside a column.
+
+```{r combine-plots}
+library(ggridges)   # For ridge plots
+
+results_largest <- results_2016 %>% 
+  group_by(state) %>% 
+  summarise(votes = sum(totalvotes, na.rm=T)) %>% 
+  top_n(12)
+
+only_biggest <- results_2016 %>% 
+  filter(state %in% results_largest$state)
+
+vote_dist <- ggplot(only_biggest, aes(x = totalvotes, y = state, fill = ..x..)) +
+  geom_density_ridges_gradient(quantile_lines = TRUE, quantiles = 2) +
+  scale_x_log10(labels = scales::label_number()) +
+  scale_fill_viridis_c(option = 'inferno') +
+  guides(fill = FALSE) +
+  theme(legend.title = element_blank()) + 
+  labs(
+    x = 'Number of votes', 
+    y = ''
+  )
+
+age_dist <- ggplot(only_biggest, aes(x = median_age, y = state, fill = ..x..)) +
+  geom_density_ridges_gradient(quantile_lines = TRUE, quantiles = 2) +
+  xlim(20, 70) +
+  scale_fill_viridis_c(option = 'inferno') +
+  guides(fill = FALSE) +
+  theme(legend.title = element_blank()) + 
+  labs(
+    x = 'Age', 
+    y = ''
+  )
+
+vote_dist + age_dist
+```
+
+# Task 3: Visualizing regression
+
+## Coefficient plot
+
+Use the `results_2016` data to create a model that predicts the percent of Democratic votes in a precinct based on age, race, income, rent, and state (hint: the formula will look like this: `percent_dem ~ median_age + percent_white + per_capita_income + median_rent + state`)
+
+Use `tidy()` in the **broom** package and `geom_pointrange()` to create a coefficient plot for the model estimates. You'll have 50 rows for all the states, and that's excessive for a plot like this, so you'll want to filter out the state rows. You can do that by adding this:
+
+```{r example-filtering, eval=FALSE}
+model <- lm(percent_dem ~ median_age + percent_white + per_capita_income + median_rent + state, 
+                   data = results_2016)
+
+tidy(model, conf.int =  TRUE) %>%
+  filter(!str_detect(term, "state"), term != "(Intercept)") %>% 
+  ggplot(aes(x = estimate, y = term)) +
+  geom_vline(xintercept = 0, color = "red", linetype = "dotted") +
+  geom_pointrange(aes(xmin = conf.low, xmax = conf.high)) + 
+  labs(x = "Coefficient estimate", y = NULL)
+```
+
+The `str_detect()` function looks for the characters "state" in the term column. The `!` negates it. This is thus saying "only keep rows where the word 'state' is not in the term name".
+
+You should also get rid of the intercept (`filter(term != "(Intercept)")`).
+
+
+## Marginal effects
+
+Create a new data frame with `tibble()` that contains a column for the average value for each variable in your model *except for one*, which you vary. For state, you'll need to choose a single state. The new dataset should look something like this (though this is incomplete! You'll need to include all the variables in your model, and you'll need to vary one using `seq()`) (like `seq(9000, 60000, by = 100)` for `per_capita_income`). The `na.rm` argument in `mean()` here makes it so missing values are removed—without it, R can't calculate the mean and will return `NA` instead.
+
+```{r create-new-data, eval=FALSE}
+to_predict_varwhite <- tibble(median_age = mean(results_2016$median_age, na.rm = TRUE),
+                              percent_white = seq(10, 100, by = 15),
+                              median_rent = mean(results_2016$median_rent, na.rm = TRUE),
+                              per_capita_income = mean(results_2016$per_capita_income,  na.rm = TRUE),
+                              state = "Georgia")  # Or whatever
+
+to_predict_varage <- tibble(median_age = seq(20, 70, 10),
+                            percent_white = mean(results_2016$percent_white, na.rm =  TRUE),
+                            median_rent = mean(results_2016$median_rent, na.rm = TRUE),
+                            per_capita_income = mean(results_2016$per_capita_income,  na.rm = TRUE),
+                            state = "Georgia")  # Or whatever
+```
+
+Use `augment()` to generate predictions from this dataset using the model you created before. Plot your varied variable on the x-axis, the fitted values (`.fitted`) on the y-axis, show the relationship with a line, and add a ribbon to show the 95% confidence interval.
+
+```{r predictions, eval=FALSE}
+
+plot_white <- augment(model, newdata = to_predict_varwhite) %>% 
+  select(percent_white, .fitted, .se.fit) %>% 
+  mutate(conf.low = .fitted + (-1.96 * .se.fit),
+         conf.high = .fitted + (1.96 * .se.fit)) %>% 
+  ggplot(aes(x = percent_white, y = .fitted)) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high),
+              fill = "#BF3984", alpha = 0.5) + 
+  geom_line(size = 1, color = "#BF3984") +
+  labs(x = "Percentage of white voters", y = "Predicted democratic vote percentage")
+
+plot_age <- augment(model, newdata = to_predict_varage) %>% 
+  select(median_age, .fitted, .se.fit) %>% 
+  mutate(conf.low = .fitted + (-1.96 * .se.fit),
+         conf.high = .fitted + (1.96 * .se.fit)) %>% 
+  ggplot(aes(x = median_age, y = .fitted)) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high),
+              fill = "#BF3984", alpha = 0.5) + 
+  geom_line(size = 1, color = "#BF3984") +
+  labs(x = "Age", y = "Predicted democratic vote percentage")
+
+plot_white + plot_age + 
+  plot_layout(ncol = 1)
+
+```
+
+
+# Bonus task! Correlograms
+
+**This is entirely optional but might be fun.**
+
+For extra fun times, if you feel like it, create a correlogram heatmap, either with `geom_tile()` or with points sized by the correlation. Use any variables you want from `results_2016`.
+
+```{r}
+things_to_correlate <- results_2016 %>% 
+  select(percent_dem, percent_gop, percent_black, percent_white, per_capita_income, median_rent,median_age) %>% 
+  cor(use = 'complete.obs') 
+things_to_correlate[lower.tri(things_to_correlate)] <- NA
+
+things_to_correlate_long <- things_to_correlate %>% 
+  # Convert from a matrix to a data frame
+  as.data.frame() %>% 
+  # Matrixes have column names that don't get converted to columns when using
+  # as.data.frame(), so this adds those names as a column
+  rownames_to_column("measure2") %>% 
+  # Make this long. Take all the columns except measure2 and put their names in
+  # a column named measure1 and their values in a column named cor
+  pivot_longer(cols = -measure2,
+               names_to = "measure1",
+               values_to = "cor") %>% 
+  # Make a new column with the rounded version of the correlation value
+  mutate(nice_cor = round(cor, 2)) %>% 
+  # Remove rows where the two measures are the same (like the correlation
+  # between humidity and humidity)
+  filter(measure2 != measure1) %>%
+  # Get rid of the empty triangle
+  filter(!is.na(cor)) %>% 
+  # Put these categories in order
+  mutate(measure1 = fct_inorder(measure1),
+         measure2 = fct_inorder(measure2))
+
+ggplot(things_to_correlate_long, 
+       aes(x = measure2, y = measure1, color = cor)) +
+  # Size by the absolute value so that -0.7 and 0.7 are the same size
+  geom_point(aes(size = abs(cor))) +
+  scale_color_gradient2(low = "#E16462", mid = "white", high = "#0D0887",
+                        limits = c(-1, 1)) +
+  scale_size_area(max_size = 15, limits = c(-1, 1), guide = FALSE) +
+  labs(x = NULL, y = NULL) +
+  coord_equal() +
+  theme(panel.grid = element_blank(),
+        axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
