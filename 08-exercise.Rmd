@@ -1,0 +1,98 @@
+---
+title: "Exercise 8"
+author: "Put your name here"
+date: "Put the date here"
+output: html_document
+---
+
+# Task 1: Reflection
+
+* Before using violins to visualize distributions, verify that you have sufficiently many data points in each group to justify showing the point densities as smooth lines.
+
+* Whenever the dataset is too sparse to justify the violin visualization, plotting the raw data as individual points will be possible.
+
+* Sparklines are so cool, tiny, and informative! For later reference: https://github.com/holman/spark
+
+
+```{r load-libraries-data, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(broom)
+
+unemployment <- read_csv("data/unemployment.csv")
+
+theme_set(theme_light())
+```
+
+
+# Task 2: Small multiples
+
+Use data from the US Bureau of Labor Statistics (BLS) to show the trends in employment rate for all 50 states between 2006 and 2016. 
+
+**What stories does this plot tell? Which states struggled to recover from the 2008–09 recession?**
+
+Some hints/tips:
+
+- You won't need to filter out any missing rows because the data here is complete—there are no state-year combinations with missing unemployment data.
+
+- You'll be plotting 51 facets. You can filter out DC if you want to have a better grid (like 5 × 10), or you can try using `facet_geo()` from the [**geofacet** package](https://hafen.github.io/geofacet/) to lay out the plots like a map of the US (try this!).
+
+- Plot the `date` column along the x-axis, *not* the `year` column. If you plot by year, you'll get weird looking lines (try it for fun?), since these observations are monthly. If you really want to plot by year only, you'll need to create a different data frame where you group by year and state and calculate the average unemployment rate for each year/state combination (i.e. `group_by(year, state) %>% summarize(avg_unemployment = mean(unemployment))`)
+
+- Try mapping other aesthetics onto the graph too. You'll notice there are columns for region and division—play with those as colors, for instance.
+
+- This plot might be big, so make sure you adjust `fig.width` and `fig.height` in the chunk options so that it's visible when you knit it. You might also want to use `ggsave()` to save it with extra large dimensions.
+
+```{r small-multiples}
+library(geofacet)
+
+unemployment %>% 
+  ggplot(aes(x = date, y = unemployment, color = region, linetype = division)) +
+    geom_line() +
+    facet_geo(~ state, grid = "us_state_grid2") +
+    scale_x_date(labels = scales::date_format("%y")) +
+    theme_void() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 9)) +
+    guides(color = FALSE, linetype = FALSE) +
+    labs(
+      x = "", 
+      y = "Unemployment rate"
+    )
+```
+
+
+# Task 3: Slopegraphs
+
+Use data from the BLS to create a slopegraph that compares the unemployment rate in January 2006 with the unemployment rate in January 2009, either for all 50 states at once (good luck with that!) or for a specific region or division. Make sure the plot doesn't look too busy or crowded in the end.
+
+**What story does this plot tell? Which states in the US (or in the specific region you selected) were the most/least affected the Great Recession?**
+
+Some hints/tips:
+
+- You should use `filter()` to only select rows where the year is 2006 or 2009 (i.e. `filter(year %in% c(2006, 2009)`) and to select rows where the month is January (`filter(month == 1)` or `filter(month_name == "January")`)
+
+- In order for the year to be plotted as separate categories on the x-axis, it needs to be a factor, so use `mutate(year = factor(year))` to convert it.
+
+- To make ggplot draw lines between the 2006 and 2009 categories, you need to include `group = state` in the aesthetics.
+
+```{r slopegraph}
+library(directlabels)
+
+unemployment %>% 
+  filter(year %in% c(2006, 2009) & 
+           division %in% c('East North Central', 'West North Central') &
+           month == 1) %>%
+  mutate(year = factor(year)) %>% 
+  ggplot(aes(x = year, y = unemployment, group = state, color = division)) +
+    geom_line(size = 1.5, alpha = 0.7) +
+    geom_point(size = 3, alpha = 0.7) +
+    facet_wrap(~ division) +
+    guides(color = FALSE) +
+    scale_color_viridis_d(end = 0.7) +
+    scale_y_continuous(labels = scales::percent_format(scale = 1)) +
+    geom_dl(aes(label = state),
+            method = list(dl.combine("last.points"), dl.trans(x = x + 0.3), cex = 0.8)) +
+    labs(
+      x = '',
+      y = 'Unemployment rate'
+    )
+```
