@@ -77,22 +77,36 @@ Some hints/tips:
 ```{r slopegraph}
 library(directlabels)
 
-unemployment %>% 
+labeled_states <- unemployment %>% 
+  filter(year %in% c(2006, 2009) & month == 1) %>% 
+  group_by(state, year) %>% 
+  pivot_wider(id_cols = state, names_from = year, values_from = unemployment) %>% 
+  group_by(state) %>% 
+  mutate(unem_diff = `2009` - `2006`) %>% 
+  filter(unem_diff >= 3 | unem_diff < 1)
+
+
+unemp_plotting <- unemployment %>% 
   filter(year %in% c(2006, 2009) & 
            division %in% c('East North Central', 'West North Central') &
            month == 1) %>%
-  mutate(year = factor(year)) %>% 
-  ggplot(aes(x = year, y = unemployment, group = state, color = division)) +
-    geom_line(size = 1.5, alpha = 0.7) +
-    geom_point(size = 3, alpha = 0.7) +
-    facet_wrap(~ division) +
-    guides(color = FALSE) +
-    scale_color_viridis_d(end = 0.7) +
-    scale_y_continuous(labels = scales::percent_format(scale = 1)) +
-    geom_dl(aes(label = state),
-            method = list(dl.combine("last.points"), dl.trans(x = x + 0.3), cex = 0.8)) +
-    labs(
-      x = '',
-      y = 'Unemployment rate'
-    )
+  mutate(year = factor(year))
+
+labeled_states_idx <- unemp_plotting$state %in% labeled_states$state
+
+ggplot(unemp_plotting,
+       aes(x = year, y = unemployment, group = state, color = division)) +
+  geom_line(size = 1.5, alpha = 0.7) +
+  geom_point(size = 3, alpha = 0.7) +
+  facet_wrap(~ division) +
+  guides(color = FALSE) +
+  scale_color_viridis_d(end = 0.7) +
+  scale_y_continuous(labels = scales::percent_format(scale = 1)) +
+  geom_dl(data = subset(unemp_plotting, labeled_states_idx),
+          aes(label = state),
+          method = list(dl.combine("last.points"), dl.trans(x = x + 0.3), cex = 0.8)) +
+  labs(
+    x = '',
+    y = 'Unemployment rate'
+  )
 ```

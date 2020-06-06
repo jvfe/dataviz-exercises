@@ -1,0 +1,69 @@
+---
+title: "Exercise 9"
+author: "Put your name here"
+date: "Put the date here"
+output: html_document
+---
+
+# Task 1: Reflection
+
+* The principle of proportional ink: The sizes of shaded areas in a visualization need to be proportional to the data values they represent.
+* It is perfectly valid to use bars or shaded areas to show differences between conditions, as long as we make it explicit which differences we are showing.
+* When bars are drawn on a log scale, they represent ratios and need to be drawn starting from 1, not 0. 
+* Use direct labeling instead of colors when you need to distinguish between more than about eight categorical items. 
+
+
+# Task 2: Annotations
+
+```{r load-libraries-data, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(ggrepel)
+# Load data here
+usaarrests <- USArrests %>% 
+    rownames_to_column('state') %>%
+    mutate(murder_edges = ifelse(Murder > 15 | Murder < 2.5, TRUE, FALSE),
+           is_max = ifelse(Murder > 15, TRUE, FALSE))
+
+ggplot(usaarrests, 
+       aes(x = UrbanPop, y = Assault, color = Rape)) +
+    geom_point(size = 3) +
+    geom_label_repel(data = filter(usaarrests, murder_edges == TRUE),
+                     aes(label = state, fill = is_max),
+                     color = "white") +
+    theme_bw(base_family = "IBM Plex Sans") +
+    theme(legend.position = 'bottom', 
+          plot.title = element_text(face = "bold")) +
+    scale_x_continuous(labels = scales::percent_format(scale = 1)) +
+    scale_color_viridis_c(name = 'Nº of Rape arrests\n(per 100k)') +
+    guides(
+        fill = FALSE
+    ) +
+    labs(
+        title = 'USA Arrests (1973)',
+        subtitle = 'Labeled points are in the extremes\nof murder arrests (per 100k)',
+        caption = 'Lower number of murder arrests\nare labeled red, highest are labeled blue',
+        x = 'Urban Population', 
+        y = 'Number of Assault arrests (per 100k)'
+    ) +
+    annotate(geom = "curve", x = 84, xend = 81, y = 225, yend = 248, color = "#FF851B", 
+             curvature = -0.5, arrow = arrow(angle = 15, length = unit(0.5, "lines"))) +
+    annotate(geom = 'text', x = 88, y = 219, color = "#FF851B",
+             label = "Nevada has the highest\namount of rape arrests")
+```
+
+Do the following:
+
+1. Make a plot. Any kind of plot will do (though it might be easiest to work with `geom_point()`).
+
+2. Label (some or all of) the points using one of `geom_text()`, `geom_label()`, `geom_text_repel()`, or `geom_label_repel()`. You might need to make a new indicator variable so that you only highlight a few of the points instead of all of them.
+
+3. Add *at least two each** the following annotations somewhere on the plot using `annotate()`:
+
+    - **Text**
+    - **An arrow** (make a curved arrow for bonus fun)
+    - **A rectangle**
+    
+    You can add more if you want, but those three are the minimum. Try to incorporate the annotations into the design of the plot rather than just placing them wherever.
+
+Good luck and have fun!
+
