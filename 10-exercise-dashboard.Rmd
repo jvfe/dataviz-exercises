@@ -1,0 +1,67 @@
+---
+title: "Exercise 10 - Interactivity"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: scroll
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(tidyverse)
+library(plotly)
+library(gapminder)
+
+theme_set(theme_minimal())
+
+continent_info <- gapminder %>% 
+  distinct(country, continent)
+
+savings <- LifeCycleSavings %>% 
+  rownames_to_column(var = 'country') %>%  
+  left_join(continent_info, by = 'country') %>% 
+  filter(!is.na(continent))
+
+```
+
+Column {data-height=350}
+-------------------------------------
+### Savings ratio in relation to disposable income
+
+```{r}
+p2 <- savings %>% 
+  ggplot(aes(x = sr, y = dpi, size = pop15, color = continent)) +
+  geom_point(aes(text = country), alpha = 0.5) +
+  labs(
+    x = "Savings ratio",
+    y = "Per-capita disposable income"
+  ) +
+  scale_size_continuous(name = "% of Pop. under 15 years of age") +
+  guides(
+    color = FALSE,
+    size = FALSE
+  )
+
+ggplotly(p2, tooltip = c("text", "size")) %>% 
+  layout(showLegend = F)
+```
+
+* Size represents % of Pop. under the age of 15
+
+### Savings ratio by continent
+
+```{r}
+p <- savings %>% 
+  ggplot(aes(x = sr, y = continent, color = continent)) +
+  geom_jitter(aes(text = country), width = 0, height = 0.2, alpha = 0.5) +
+  labs(
+    x = "Savings ratio",
+    y = NULL
+  ) +
+  guides(
+    color = FALSE
+  )
+
+ggplotly(p, tooltip = "text")
+```
+
