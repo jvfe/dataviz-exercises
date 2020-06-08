@@ -1,0 +1,80 @@
+---
+title: "Exercise 11"
+author: "Put your name here"
+date: "Put the date here"
+output: html_document
+---
+
+# Task 1: Reflection
+
+* Only truncate the y-axis when:
+  * Small changes matter;
+  * The scale is distorted;
+  * When zero values are impossible.
+
+* Never truncate x-axis for missing data.
+* Don't draw lines between points on an x-axis of categorical data, it gives the illusion of a continuous axis,
+use lollipop charts instead.
+
+
+# Task 2: Visualizing time
+
+```{r load-libraries-data, warning=FALSE, message=FALSE}
+library(tidyverse)
+theme_set(theme_bw(base_family = "Roboto"))
+# Load data here
+
+huron_levels <- LakeHuron %>% 
+  as.numeric() %>%
+  as_tibble() %>% 
+  mutate(year = c(1875:1972)) %>% 
+  as_tsibble(index = year)
+
+
+```
+
+Do the following:
+
+1. Load some time-related data
+
+2. Make a plot to show how that data changes over time.
+
+3. Explain why you chose to visualize the data the way you did.
+
+```{r first-plot}
+real_plot <- ggplot(huron_levels, aes(x = year, y = value)) +
+  geom_line(color = '#296e6b') +
+  geom_point(color = '#296e6b') +
+  labs(
+    x = NULL,
+    y = "Water level (ft)",
+    title = "Lake Huron Water levels",
+    subtitle = "Measured in feet, from 1875 to 1975",
+    caption = "Arrow indicates the lowest value ever recorded."
+  ) +
+  theme(plot.title = element_text(face = "bold")) +
+  annotate(geom = "segment", x = 1975, xend = 1965, y = 577, yend = 576, color = "#FF851B", arrow = arrow(angle = 15, length = unit(0.5, "lines")))
+```
+
+```{r decomposition}
+library(feasts)
+
+huron_comps <- huron_levels %>%  
+  model(stl = STL(value)) %>% 
+  components()
+
+trend_plot <- ggplot(huron_comps, aes(x = year, y = trend)) +
+  geom_line(color = '#296e6b', size = 1) +
+  labs(
+    x = NULL, 
+    y = 'Trend (ft)'
+  )
+```
+
+```{r}
+library(patchwork)
+
+real_plot + trend_plot + 
+  plot_layout(ncol = 1)
+```
+
