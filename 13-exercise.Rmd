@@ -1,0 +1,138 @@
+---
+title: "Exercise 13"
+author: "Put your name here"
+date: "Put the date here"
+output: html_document
+---
+
+# Task 1: Reflection
+
+* Make word counts, not word clouds.
+
+
+
+# Task 2: Word frequencies
+
+Download 4+ books by some author on [Project Gutenberg](http://www.gutenberg.org/). Jane Austen, Victor Hugo, Emily Brontë, Lucy Maud Montgomery, Arthur Conan Doyle, Mark Twain, Henry David Thoreau, Fyodor Dostoyevsky, Leo Tolstoy. Anyone. Just make sure it's all from the same author.
+
+Make these two plots and describe what each tell about your author's books:
+
+1. Top 10 most frequent words *in each book*
+2. Top 10 most unique words *in each book* (i.e. tf-idf)
+
+```{r load-libraries-data, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(tidytext)
+library(gutenbergr)
+
+theme_set(theme_bw(base_family = "Roboto"))
+```
+
+```{r get-data-from-gutenberg}
+# Lovecraft: The Dunwich Horror, The Shunned House
+# Edgar Allan Poe: Complete works vol 1, vol 2
+# Richard Chambers: The King in Yellow
+# Arthur Machen: The Great God Pan
+
+horrors <- gutenberg_download(c(50133, 31469, 2147, 2148, 8492, 389), meta_fields = c("title", "author")) %>% 
+  filter(text != "")
+```
+
+```{r basic-word-counting}
+
+horrors_words <- horrors %>% 
+  unnest_tokens(word, text) %>% 
+  anti_join(stop_words) %>% 
+  filter(!(word %in% c("thou", "thy", "haue", "thee", "thine", "ye", "ha", "ugh")))
+
+horrors_bigrams <- horrors %>% 
+  unnest_tokens(bigram, text, token = "ngrams", n = 2) %>%
+  separate(bigram, c("word1", "word2"), sep = " ") %>% 
+  filter(!word1 %in% c(stop_words$word, "thou", "thy", "haue", "thee", "thine", "ye",
+                       "ha", "ugh")) %>%
+  filter(!word2 %in% c(stop_words$word, "thou", "thy", "haue", "thee", "thine", "ye",
+                       "ha", "ugh")) %>% 
+  unite(bigram, word1, word2, sep = " ") %>% 
+  mutate(bigram = str_to_title(str_remove_all(bigram, "_")))
+
+bigram_by_title <- horrors_bigrams %>% 
+  count(title, bigram, sort = TRUE) %>% 
+  # Keep top 15 in each play
+  group_by(title) %>% 
+  top_n(15) %>% 
+  ungroup() %>% 
+  # Make the words an ordered factor so they plot in order
+  mutate(bigram = reorder_within(bigram, n, title))
+
+bigram_by_author <- horrors_bigrams %>% 
+  count(author, bigram, sort = TRUE) %>% 
+  # Keep top 15 in each play
+  group_by(author) %>% 
+  top_n(15) %>% 
+  ungroup() %>% 
+  # Make the words an ordered factor so they plot in order
+  mutate(bigram = reorder_within(bigram, n, author))
+```
+
+```{r plot-word-counts}
+ggplot(bigram_by_author, aes(y = bigram, x = n, fill = author)) + 
+  geom_col() + 
+  guides(fill = FALSE) +
+  labs(y = "Count", x = NULL, 
+       title = "15 most frequent bigrams in classic Horror stories",
+       subtitle = "Grouped by author") +
+  facet_wrap(vars(author), scales = "free_y") +
+  scale_y_reordered() +
+  scale_fill_viridis_d(option = 'magma', end = 0.8) +
+  theme(plot.title = element_text(face = "bold"))
+
+ggplot(bigram_by_title, aes(y = bigram, x = n, fill = title)) + 
+  geom_col() + 
+  guides(fill = FALSE) +
+  labs(y = "Count", x = NULL, 
+       title = "15 most frequent bigrams in classic Horror stories",
+       subtitle = "Grouped by work") +
+  facet_wrap(vars(title), scales = "free_y") +
+  scale_y_reordered() +
+  scale_fill_viridis_d(option = 'magma', end = 0.8) +
+  theme(plot.title = element_text(face = "bold"))
+```
+
+```{r sentiment-analysis}
+sentiments <- horrors_words %>% 
+  inner_join(get_sentiments("bing"))
+
+sentiments %>% 
+  count(author, sentiment) %>% 
+  ggplot(aes(x = sentiment, y = n, color = author, shape = sentiment)) +
+    geom_pointrange(aes(ymin = 0, ymax = n), size = 1, 
+                  position = position_dodge(width = 0.5)) +
+    scale_alpha_manual(values = c(0.5, 1)) +
+    facet_wrap(vars(author))
+```
+
+```{r sentiment-line-split}
+sentiments_by_line <- sentiments %>% 
+  # Divide lines into groups of 100
+  mutate(line = row_number(),
+         line_chunk = line %/% 100) %>% 
+  # Get a count of postiive and negative words in each 100-line chunk in each play
+  count(title, line_chunk, sentiment) %>% 
+  # Convert the sentiment column into two columns named "positive" and "negative"
+  pivot_wider(names_from = sentiment, values_from = n) %>% 
+  # Calculate net sentiment
+  mutate(sentiment = positive - negative)
+
+ggplot(sentiments_by_line,
+       aes(x = line_chunk, y = sentiment, fill = sentiment)) +
+  geom_col() +
+  scale_fill_viridis_c(option = "magma", end = 0.9, name = "Sentiment") +
+  facet_wrap(vars(title), scales = "free_x") +
+  labs(
+    title = "Sentiment change in book",
+    x = "Line",
+    y = "Sentiment"
+  ) +
+  theme(plot.title = element_text(face = "bold"))
+```
+

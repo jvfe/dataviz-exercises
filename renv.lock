@@ -72,6 +72,13 @@
       "Repository": "CRAN",
       "Hash": "07a8bd218526e939d07fada5a950e5be"
     },
+    "anytime": {
+      "Package": "anytime",
+      "Version": "0.3.7",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "638046c309a211f51ee7c2e1eb7fd2dd"
+    },
     "askpass": {
       "Package": "askpass",
       "Version": "1.1",
@@ -247,6 +254,13 @@
       "Repository": "CRAN",
       "Hash": "ec8ca05cffcc70569eaaad8469d2a3a7"
     },
+    "fabletools": {
+      "Package": "fabletools",
+      "Version": "0.1.3",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "b9ba7b2b0bf8a079dcded52ebe9e5ead"
+    },
     "fansi": {
       "Package": "fansi",
       "Version": "0.4.1",
@@ -267,6 +281,13 @@
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "83ab58a0518afe3d17e41da01af13b60"
+    },
+    "feasts": {
+      "Package": "feasts",
+      "Version": "0.1.3",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "fdb846218aeeabf2ce32fe8a2d9d6d62"
     },
     "flexdashboard": {
       "Package": "flexdashboard",
@@ -777,19 +798,19 @@
       "Repository": "CRAN",
       "Hash": "3838071b66e0c566d55cc26bd6e27bf4"
     },
-    "sf": {
-      "Package": "sf",
-      "Version": "0.9-3",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Hash": "f16ad0ac903df6727dbfb2e30eafcc26"
-    },
     "shiny": {
       "Package": "shiny",
       "Version": "1.4.0.2",
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "a56d058adfc9df30bdd45dbb01cec39f"
+    },
+    "slider": {
+      "Package": "slider",
+      "Version": "0.1.4",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "9647828663565e82f380c132e52cf8e5"
     },
     "sourcetools": {
       "Package": "sourcetools",
@@ -868,6 +889,13 @@
       "Repository": "CRAN",
       "Hash": "a8c653ef8ce67683f588e6088ed45572"
     },
+    "tsibble": {
+      "Package": "tsibble",
+      "Version": "0.9.0",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "09bd62420c2a20d481dcfaf325340282"
+    },
     "units": {
       "Package": "units",
       "Version": "0.6-6",
@@ -895,6 +923,13 @@
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "ce4f6271baa94776db692f1cb2055bee"
+    },
+    "warp": {
+      "Package": "warp",
+      "Version": "0.1.0",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "5c786a8883c9f49f6d137ee76558ceef"
     },
     "whisker": {
       "Package": "whisker",
